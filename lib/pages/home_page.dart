@@ -14,7 +14,10 @@ class _HomePageState extends State<HomePage> {
   final WeatherFactory _wf = WeatherFactory(OPENWEATHER_API_KEY);
 
   Weather? _weather;
-  String _location = "Karachi"; // Default location
+  String _location = "Peshawar";
+  String _displayLocation =
+      "Peshawar"; // Variable to store the displayed location name
+  bool _hasError = false; // Flag to indicate if there was an error
 
   @override
   void initState() {
@@ -26,15 +29,18 @@ class _HomePageState extends State<HomePage> {
     _wf.currentWeatherByCityName(location).then((w) {
       setState(() {
         _weather = w;
+        _displayLocation = location; // Update the displayed location name
+        _hasError = false; // Reset error flag
       });
     }).catchError((e) {
-      // Handle errors, e.g., location not found
       setState(() {
-        _weather = null; // Clear weather on error
+        _weather = null;
+        _hasError = true; // Set error flag
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error fetching weather for $location"),
+          content: Text(
+              "Error fetching weather for $location. Please enter a valid location."),
           duration: const Duration(seconds: 3),
         ),
       );
@@ -49,19 +55,18 @@ class _HomePageState extends State<HomePage> {
         child: Container(
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage(
-                  'images/image.jpg'), // Replace with your image path
-              fit: BoxFit.cover, // Cover the entire screen
+              image: AssetImage('images/image.jpg'),
+              fit: BoxFit.cover,
             ),
           ),
-          child: _buildUI(), // Your existing UI content
+          child: _buildUI(),
         ),
       ),
     );
   }
 
   Widget _buildUI() {
-    if (_weather == null) {
+    if (_weather == null && !_hasError) {
       return _buildLoadingUI();
     }
     return SizedBox(
@@ -127,9 +132,28 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildDateTimeInfo() {
+    if (_hasError) {
+      return Text(
+        "Invalid location. Please try again.",
+        style: const TextStyle(
+          fontSize: 20,
+          color: Colors.white,
+        ),
+      );
+    }
     DateTime now = _weather!.date!;
     return Column(
       children: [
+        Text(
+          _displayLocation, // Display the location name
+          style: const TextStyle(
+            fontSize: 25,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(
+          height: 10,
+        ),
         Text(
           DateFormat("h:mm a").format(now),
           style: const TextStyle(
@@ -153,7 +177,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Text(
-              "  ${DateFormat("d.m.y").format(now)}",
+              "  ${DateFormat("d.M.y").format(now)}",
               style: const TextStyle(
                 fontWeight: FontWeight.w400,
                 color: Colors.white,
@@ -166,6 +190,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWeatherIcon() {
+    if (_hasError)
+      return Container(); // Return an empty container if there's an error
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -192,6 +218,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildCurrentTemp() {
+    if (_hasError)
+      return Container(); // Return an empty container if there's an error
     return Text(
       "${_weather?.temperature?.celsius?.toStringAsFixed(0)}° C",
       style: const TextStyle(
@@ -203,6 +231,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildExtraInfo() {
+    if (_hasError) return Container();
     return Container(
       height: MediaQuery.of(context).size.height * 0.15,
       width: MediaQuery.of(context).size.width * 0.80,
